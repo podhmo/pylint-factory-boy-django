@@ -33,7 +33,7 @@ tests_require = [
 testing_extras = tests_require + [
 ]
 
-setup(name='pylint_factory_boy_django',
+setup(name='pylint-factory-boy-django',
       version='0.1',
       description='a pylint plugin for factory boy in django environement',
       long_description=README + '\n\n' + CHANGES,
