@@ -50,6 +50,17 @@ class UserFactory(DjangoModelFactory):
 
     def test_it__oldstyle3(self):
         code = """\
+from pylint_factory_boy_django import models as m
+from fuctory.django import DjangoModelFactory
+
+class UserFactory(DjangoModelFactory):
+    FACTORY_FOR = m.User
+"""
+        ast = self._callFUT(code)
+        self.assertTrue(ast["UserFactory"]["name"])
+
+    def test_it__oldstyle4(self):
+        code = """\
 from pylint_factory_boy_django.models import User as Foo
 from fuctory.django import DjangoModelFactory
 
