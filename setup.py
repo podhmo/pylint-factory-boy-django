@@ -26,6 +26,7 @@ docs_extras = [
 ]
 
 tests_require = [
+    "django>=1.7"
 ]
 
 testing_extras = tests_require + [

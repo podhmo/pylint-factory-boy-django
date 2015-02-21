@@ -4,4 +4,4 @@ from astroid import MANAGER
 
 
 def register(linter, manager=MANAGER):
-    transforms.register_transform(manager)
+    transforms.register_transforms(manager)
