@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
-import logging
-logger = logging.getLogger(__name__)
+from __future__ import absolute_import
+from pylint_django import plugin
 
+register = plugin.register
