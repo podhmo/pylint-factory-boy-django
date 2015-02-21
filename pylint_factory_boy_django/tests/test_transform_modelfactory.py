@@ -2,14 +2,15 @@
 import unittest
 
 """
-_models as models;
-_models
-_models. import User
-"pylint_factory_boy_django._models.User"
+from <app> import models
+from <app> import models as _models
+from <app>.models import User
+"<app>._models.User"
+
 """
 
 
-class Tests(unittest.TestCase):
+class ModelFactoryPaddingTests(unittest.TestCase):
     def _makeManager(self):
         from astroid.manager import AstroidManager
         return AstroidManager()
@@ -24,7 +25,7 @@ class Tests(unittest.TestCase):
         modelfactory.register_transform(manager)
         builder = self._makeBuilder(manager)
         return builder.string_build(code)
-
+    # @unittest.skip("")
     def test_it__oldstyle(self):
         code = """\
 from pylint_factory_boy_django import models
@@ -35,7 +36,7 @@ class UserFactory(DjangoModelFactory):
 """
         ast = self._callFUT(code)
         self.assertTrue(ast["UserFactory"]["name"])
-
+    # @unittest.skip("")
     def test_it__oldstyle2(self):
         code = """\
 from pylint_factory_boy_django.models import User
@@ -47,6 +48,18 @@ class UserFactory(DjangoModelFactory):
         ast = self._callFUT(code)
         self.assertTrue(ast["UserFactory"]["name"])
 
+    def test_it__oldstyle3(self):
+        code = """\
+from pylint_factory_boy_django.models import User as Foo
+from fuctory.django import DjangoModelFactory
+
+class UserFactory(DjangoModelFactory):
+    FACTORY_FOR = Foo
+"""
+        ast = self._callFUT(code)
+        self.assertTrue(ast["UserFactory"]["name"])
+
+    # @unittest.skip("")
     def test_it__oldstyle_string(self):
         code = """\
 from fuctory.django import DjangoModelFactory

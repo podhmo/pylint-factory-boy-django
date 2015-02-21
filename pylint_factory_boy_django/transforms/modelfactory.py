@@ -10,6 +10,10 @@ from weakref import WeakKeyDictionary, WeakValueDictionary
 from importlib import find_loader
 
 
+class FindModuleError(Exception):
+    pass
+
+
 class FromStmtImportedCache(object):
     def __init__(self, builder=None):
         self.from_stmt_cache = WeakKeyDictionary()
@@ -22,8 +26,11 @@ class FromStmtImportedCache(object):
     def get_symbol_from_stmt(self, parent, target_name):
         for stmt in self.from_stmt_cache[parent]:
             for name, bound in stmt.names:
-                if target_name == name:
-                    module = self.get_module(stmt.modname)
+                if target_name == name or target_name == bound:
+                    try:
+                        module = self.get_module(stmt.modname)
+                    except FindModuleError:
+                        module = self.get_module(*stmt.modname.rsplit(".", 1))
                     try:
                         # member of module(e.g. from unittest.mock import patch)
                         return module[name]
@@ -43,6 +50,8 @@ class FromStmtImportedCache(object):
         try:
             path = find_loader(fullname).path
         except AttributeError:
+            if modulename == fullname:
+                raise FindModuleError
             # this is django.db.models or apps.foo.models. heh.
             dirpath = find_loader(modulename).path
             if dirpath.endswith("__init__.py"):
@@ -56,7 +65,7 @@ class FromStmtImportedCache(object):
     def get_symbol(self, modname, name):
         try:
             module = self.get_module(modname)
-        except AttributeError:
+        except FindModuleError:
             module = self.get_module(*modname.rsplit(".", 1))
         return module[name]
 
