@@ -91,24 +91,33 @@ def trasform_from(from_stmt):
     mcache.register_from_stmt(module, from_stmt)
 
 
-def _get_model_spec_with_oldstyle(cls):
-    lhs = cls["FACTORY_FOR"]
-    rhs = lhs.parent.value
-    try:
-        rvalue = list(rhs.infer())[0]  # xxx:
-        if isinstance(rvalue, Const):
-            # when FACTORY_FOR = "app.models.User"
-            modulename, attrname = rvalue.value.rsplit(".", 1)
-            return mcache.get_symbol(modulename, attrname)
-        return rvalue  # xxx:
-    except UnresolvableName as e:
-        # when FACTORY_FOR = models.User
-        target = mcache.get_symbol_from_stmt(cls.parent, e.args[0])
-        return getattribute(target, rhs)
+class GettingModelSpec(object):
+    @classmethod
+    def from_oldstyle(cls, cls_node):
+        lhs = cls_node["FACTORY_FOR"]
+        rhs = lhs.parent.value
+        return cls.get_padding_object(cls_node, rhs)
 
+    @classmethod
+    def from_newstyle(cls, cls_node):
+        option_class = cls_node["Meta"]
+        lhs = option_class["model"]
+        rhs = lhs.parent.value
+        return cls.get_padding_object(cls_node, rhs)
 
-def _get_model_spec_with_newstyle(cls):
-    pass
+    @classmethod
+    def get_padding_object(cls, cls_node, rhs):
+        try:
+            rvalue = list(rhs.infer())[0]  # xxx:
+            if isinstance(rvalue, Const):
+                # when FACTORY_FOR = "app.models.User"
+                modulename, attrname = rvalue.value.rsplit(".", 1)
+                return mcache.get_symbol(modulename, attrname)
+            return rvalue  # xxx:
+        except UnresolvableName as e:
+            # when FACTORY_FOR = models.User
+            target = mcache.get_symbol_from_stmt(cls_node.parent, e.args[0])
+            return getattribute(target, rhs)
 
 
 def trasform_class(cls):
@@ -116,10 +125,13 @@ def trasform_class(cls):
         return
     # this is ad-hock approach. TODO: fix retrieving base class's information.
     if any(name == "DjangoModelFactory" for name in cls.basenames):
-        if "FACTORY_FOR" in cls:
-            model = _get_model_spec_with_oldstyle(cls)
-        elif "Meta" in cls:
-            model = _get_model_spec_with_newstyle(cls)
+        if "Meta" in cls:
+            model = GettingModelSpec.from_newstyle(cls)
+
+        elif "FACTORY_FOR" in cls:
+            model = GettingModelSpec.from_oldstyle(cls)
+        else:
+            return
         for name, attr in model.locals.items():
             if name not in cls.locals:
                 cls.locals[name] = attr
