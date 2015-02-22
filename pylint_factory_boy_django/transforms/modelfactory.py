@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 import os.path
+import sys
 from astroid import MANAGER
 from astroid.builder import AstroidBuilder
 from astroid.exceptions import UnresolvableName
@@ -17,7 +18,7 @@ class FindModuleError(Exception):
 class FromStmtImportedCache(object):
     def __init__(self, builder=None):
         self.from_stmt_cache = WeakKeyDictionary()
-        self.modules = WeakValueDictionary()
+        self.modules = {}
         self.builder = builder or AstroidBuilder(MANAGER)
 
     def register_from_stmt(self, module, from_stmt):
@@ -123,18 +124,20 @@ class GettingModelSpec(object):
 def trasform_class(cls):
     if not is_toplevel_module(cls.parent):
         return
-    # this is ad-hock approach. TODO: fix retrieving base class's information.
-    if any(name == "DjangoModelFactory" for name in cls.basenames):
-        if "Meta" in cls:
-            model = GettingModelSpec.from_newstyle(cls)
-
-        elif "FACTORY_FOR" in cls:
-            model = GettingModelSpec.from_oldstyle(cls)
-        else:
-            return
-        for name, attr in model.locals.items():
-            if name not in cls.locals:
-                cls.locals[name] = attr
+    try:
+        # this is ad-hock approach. TODO: fix retrieving base class's information.
+        if any(name.endswith("DjangoModelFactory") for name in cls.basenames):
+            if "Meta" in cls:
+                model = GettingModelSpec.from_newstyle(cls)
+            elif "FACTORY_FOR" in cls:
+                model = GettingModelSpec.from_oldstyle(cls)
+            else:
+                return
+            for name, attr in model.locals.items():
+                if name not in cls.locals:
+                    cls.locals[name] = attr
+    except KeyError as e:
+        sys.stderr.write("failed. cls={}, module={}. (err={})\n".format(cls.name, cls.parent.name, e))
 
 
 def register_transform(manager):
