@@ -4,7 +4,7 @@ import sys
 from astroid import MANAGER
 from astroid.builder import AstroidBuilder
 from astroid.exceptions import UnresolvableName
-from astroid.node_classes import Getattr, Const
+from astroid.node_classes import Getattr, Const, Assign, AssName
 # from astroid.as_string import to_code
 from astroid import scoped_nodes
 from weakref import WeakKeyDictionary, WeakValueDictionary
@@ -133,11 +133,19 @@ def trasform_class(cls):
                 model = GettingModelSpec.from_oldstyle(cls)
             else:
                 return
+
             for name, attr in model.locals.items():
                 if name not in cls.locals:
                     cls.locals[name] = attr
+            if "id" not in cls.locals:
+                ast = AstroidBuilder(MANAGER).string_build("id = None")  # xxx:
+                cls.locals["id"] = [ast["id"]]
     except KeyError as e:
         sys.stderr.write("failed. cls={}, module={}. (err={})\n".format(cls.name, cls.parent.name, e))
+
+
+def transform_callfunc(fn):
+    print(fn)
 
 
 def register_transform(manager):
